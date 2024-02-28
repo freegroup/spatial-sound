@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GFS Resonance Audio Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/resonance-audio/build/resonance-audio.min.js"></script>
+    <script>
+        var birdsX = 5.0;
+        var birdsY = 2.0;
+        var birdsZ = 0.0;
+
+        var fireX = 3.0;
+        var fireY = 0.0;
+        var fireZ = 0.0;
+
+
+        var waterX = 2.0;
+        var waterY = 5.0;
+        var waterZ = 0.0;
+
+        var x = 3.0;
+        var y = 3.0;
+        var z = 0.0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            var audioContext;
+            var resonanceAudioScene;
+            var sourceCampfire; 
+            var sourceBirds; 
+            var sourceWater;
+            
+            document.getElementById('startButton').addEventListener('click', function() {
+                if (!audioContext) {
+                    audioContext = new AudioContext();
+                    resonanceAudioScene = new ResonanceAudio(audioContext);
+                    resonanceAudioScene.output.connect(audioContext.destination);
+                    setUpRoom();
+                    setUpAudioSources();
+                    addKeyboardListeners();
+                }
+                // Remove the overlay
+                document.getElementById('overlay').style.display = 'none';
+            });
+
+            function setUpRoom() {
+                let roomDimensions = {
+                    width: 30,
+                    height: 2.5,
+                    depth: 30,
+                };
+                let roomMaterials = {
+                    left: 'metal',
+                    right: 'curtain-heavy',
+                    front: 'curtain-heavy',
+                    back: 'curtain-heavy',
+                    down: 'grass',
+                    up: 'grass',
+                };
+                resonanceAudioScene.setRoomProperties(roomDimensions, roomMaterials);
+                resonanceAudioScene.setListenerPosition(x, y, z);
+            }
+
+            function setUpAudioSources() {
+                // Set up the audio sources here as before
+                var audioElement = document.createElement('audio');
+                audioElement.src = 'bg-campfire.mp3';
+                audioElement.loop = true;
+                let audioElementSource = audioContext.createMediaElementSource(audioElement);
+                sourceCampfire = resonanceAudioScene.createSource();
+                audioElementSource.connect(sourceCampfire.input);
+                sourceCampfire.setPosition(fireX, fireY, fireZ);
+                sourceCampfire.setMaxDistance(10);
+                audioElement.play().catch(e => console.error(e));
+                
+              
+                // Bird audio setup
+                var audioElementBirds = document.createElement('audio');
+                audioElementBirds.src = 'bg-birds.mp3';
+                audioElementBirds.loop = true; // Change to false if you want it to play once
+                let audioElementSourceBirds = audioContext.createMediaElementSource(audioElementBirds);
+                sourceBirds = resonanceAudioScene.createSource();
+                audioElementSourceBirds.connect(sourceBirds.input);
+                sourceBirds.setPosition(birdsX, birdsY, birdsZ); // Adjust position as needed
+                sourceBirds.setMaxDistance(10);
+                audioElementBirds.play().catch(e => console.error(e));
+
+
+                var audioElementWater = document.createElement('audio');
+                audioElementWater.src = 'bg-waterfall.mp3';
+                audioElementWater.loop = true;
+                let audioElementSourceWater = audioContext.createMediaElementSource(audioElementWater);
+                sourceWater = resonanceAudioScene.createSource();
+                audioElementSourceWater.connect(sourceWater.input);
+                sourceWater.setPosition(waterX, waterY, waterZ); 
+                sourceWater.setMaxDistance(3);
+                audioElementWater.play().catch(e => console.error(e));
+
+            }
+
+            function addKeyboardListeners() {
+                updatePositions();
+                window.addEventListener("keyup", function(event) {
+                    // Logic to remove the highlight from all keys
+                    document.querySelectorAll('.cursorKey').forEach(el => {
+                        el.classList.remove('highlighted');
+                    });
+                });
+                window.addEventListener("keydown", function(event) {
+                    // Clear any previous highlights
+                    document.querySelectorAll('.cursorKey').forEach(el => el.style.backgroundColor = '#fff');
+
+                    let keyElement = null;
+                    switch (event.key) {
+                        case "ArrowLeft":
+                            x -= 0.1;
+                            keyElement = document.getElementById('leftKey');
+                            break;
+                        case "ArrowRight":
+                            x += 0.1;
+                            keyElement = document.getElementById('rightKey');
+                            break;
+                        case "ArrowUp":
+                            y -= 0.1;
+                            keyElement = document.getElementById('upKey');
+                            break;
+                        case "ArrowDown":
+                            y += 0.1;
+                            keyElement = document.getElementById('downKey');
+                            break;
+                        case "PageUp":
+                            z += 0.1;
+                            break;
+                        case "PageDown":
+                            z -= 0.1;
+                            break;
+                        case " ":
+                            fireX = fireY = fireZ = 0; // Reset position with space bar
+                            break;
+                        default:
+                            return; // Quit when this doesn't handle the key event.
+                    }
+
+                    if (keyElement) {
+                        keyElement.classList.add('highlighted');
+                    }
+
+                    resonanceAudioScene.setListenerPosition(x, y, z);
+                    event.preventDefault();
+                    updatePositions();
+                }, true);
+            }
+
+        });
+        // Assuming setUpAudioSources and other initial setup is done
+
+function updatePositions() {
+    const scaleFactor = 100;
+    const offset = 50;
+    document.getElementById('soundSource1').style.left = `${fireX * scaleFactor + offset}px`;
+    document.getElementById('soundSource1').style.top = `${fireY * scaleFactor + offset}px`;
+
+    document.getElementById('soundSource2').style.left = `${waterX * scaleFactor + offset}px`;
+    document.getElementById('soundSource2').style.top = `${waterY * scaleFactor + offset}px`;
+
+    document.getElementById('soundSource3').style.left = `${birdsX * scaleFactor + offset}px`;
+    document.getElementById('soundSource3').style.top = `${birdsY * scaleFactor + offset}px`;
+
+    // Update other sources similarly...
+    
+    document.getElementById('listener').style.left = `${x * scaleFactor + offset}px`;
+    document.getElementById('listener').style.top = `${y * scaleFactor + offset}px`;
+}
+
+// Call updatePositions() at the end of your addKeyboardListeners function to update positions dynamically
+
+    </script>
+    <style>
+        html, body{
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .sound-source, .listener {
+            position: absolute;
+            display: block;
+            text-align: center;
+            color: white;
+        }
+        .sound-source {
+            width: 50px;
+            height: 50px;
+            background-color: red;
+            line-height: 50px;
+        }
+        .listener {
+            width: 60px;
+            height: 60px;
+            background-color: blue;
+            line-height: 60px;
+            color: yellow;
+        }
+
+        #cursorKeys {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none; /* Prevents text selection */
+        }
+
+        .horizontal {
+            display: flex;
+        }
+
+        .cursorKey {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 40px;
+            height: 40px;
+            margin: 5px;
+            font-size: 24px;
+            color: #000;
+            background-color: #fff;
+            border: 2px solid #000; /* Added border for better visibility */
+            border-radius: 5px;
+            cursor: pointer; /* Changes cursor to pointer to indicate it's clickable */
+        }
+
+        /* Additional styling for alignment and spacing */
+        #leftKey {
+            margin-right: 10px;
+        }
+
+        #rightKey {
+            margin-left: 10px;
+        }
+        .highlighted {
+            background-color: lightgrey !important; /* Ensure it overrides other styles */
+        }
+
+        #overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensures the overlay is above other content */
+}
+
+#startButton {
+    padding: 10px 20px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+    </style>
+    
+</head>
+<body>
+
+    <div id="soundSource1" class="sound-source">Campfire</div>
+    <div id="soundSource2" class="sound-source">Waterfall</div>
+    <div id="soundSource3" class="sound-source">Birds</div>
+    <div id="listener" class="listener">Me</div>
+
+
+    <div id="cursorKeys">
+        <div id="upKey" class="cursorKey">↑</div>
+        <div class="horizontal">
+            <div id="leftKey" class="cursorKey">←</div>
+            <div id="rightKey" class="cursorKey">→</div>
+        </div>
+        <div id="downKey" class="cursorKey">↓</div>
+    </div>
+    <div id="overlay">
+        <button id="startButton">Start</button>
+    </div>
+    
+</body>
+<script>
+
+updatePositions();
+</script>
+</html>
