@@ -4,4 +4,4 @@ This repository is dedicated to showcasing a successful experiment in 3D/spatial
 ![info](./docs/info.png)
 
 
-[Test it out](https://freegroup.github.io/spatial-sound/)
+# [&gt;&gt;&gt;&gt; Test it out](https://freegroup.github.io/spatial-sound/)
