@@ -6,6 +6,9 @@
     <title>Resonance Audio Test</title>
     <script src="resonance.js"></script>
     <script>
+        const scaleFactor = 100;
+        const offset = 0;
+
         var birdsX = 5.0;
         var birdsY = 2.0;
         var birdsZ = 0.0;
@@ -14,22 +17,22 @@
         var fireY = 0.0;
         var fireZ = 0.0;
 
-
         var waterX = 2.0;
         var waterY = 5.0;
         var waterZ = 0.0;
 
-        var x = 3.0;
-        var y = 3.0;
-        var z = 0.0;
+        var userX = 3.0;
+        var userY = 3.0;
+        var userZ = 0.0;
+
+        var sourceCampfire;
+        var sourceBirds;
+        var sourceWater;
+
+        var audioContext;
+        var resonanceAudioScene;
 
         document.addEventListener('DOMContentLoaded', function () {
-
-            var audioContext;
-            var resonanceAudioScene;
-            var sourceCampfire;
-            var sourceBirds;
-            var sourceWater;
 
             document.getElementById('startButton').addEventListener('click', function () {
                 if (!audioContext) {
@@ -38,7 +41,7 @@
                     resonanceAudioScene.output.connect(audioContext.destination);
                     setUpRoom();
                     setUpAudioSources();
-                    addKeyboardListeners();
+                    updatePositions();
                 }
                 // Remove the overlay
                 document.getElementById('overlay').style.display = 'none';
@@ -59,7 +62,6 @@
                     up: 'grass',
                 };
                 resonanceAudioScene.setRoomProperties(roomDimensions, roomMaterials);
-                resonanceAudioScene.setListenerPosition(x, y, z);
             }
 
             function setUpAudioSources () {
@@ -86,95 +88,101 @@
                 sourceBirds.setMaxDistance(10);
                 audioElementBirds.play().catch(e => console.error(e));
 
-
                 var audioElementWater = document.createElement('audio');
                 audioElementWater.src = 'bg-waterfall.mp3';
                 audioElementWater.loop = true;
+
                 let audioElementSourceWater = audioContext.createMediaElementSource(audioElementWater);
+                let gainNodeWater = audioContext.createGain();
+                gainNodeWater.gain.value = 0.05;
+
+                audioElementSourceWater.connect(gainNodeWater);
+
                 sourceWater = resonanceAudioScene.createSource();
-                audioElementSourceWater.connect(sourceWater.input);
+                gainNodeWater.connect(sourceWater.input);
+
                 sourceWater.setPosition(waterX, waterY, waterZ);
                 sourceWater.setMaxDistance(3);
+
                 audioElementWater.play().catch(e => console.error(e));
 
             }
-
-            function addKeyboardListeners () {
-                updatePositions();
-                window.addEventListener("keyup", function (event) {
-                    // Logic to remove the highlight from all keys
-                    document.querySelectorAll('.cursorKey').forEach(el => {
-                        el.classList.remove('highlighted');
-                    });
-                });
-                window.addEventListener("keydown", function (event) {
-                    // Clear any previous highlights
-                    document.querySelectorAll('.cursorKey').forEach(el => el.style.backgroundColor = '#fff');
-
-                    let keyElement = null;
-                    switch (event.key) {
-                        case "ArrowLeft":
-                            x -= 0.1;
-                            keyElement = document.getElementById('leftKey');
-                            break;
-                        case "ArrowRight":
-                            x += 0.1;
-                            keyElement = document.getElementById('rightKey');
-                            break;
-                        case "ArrowUp":
-                            y -= 0.1;
-                            keyElement = document.getElementById('upKey');
-                            break;
-                        case "ArrowDown":
-                            y += 0.1;
-                            keyElement = document.getElementById('downKey');
-                            break;
-                        case "PageUp":
-                            z += 0.1;
-                            break;
-                        case "PageDown":
-                            z -= 0.1;
-                            break;
-                        case " ":
-                            fireX = fireY = fireZ = 0; // Reset position with space bar
-                            break;
-                        default:
-                            return; // Quit when this doesn't handle the key event.
-                    }
-
-                    if (keyElement) {
-                        keyElement.classList.add('highlighted');
-                    }
-
-                    resonanceAudioScene.setListenerPosition(x, y, z);
-                    event.preventDefault();
-                    updatePositions();
-                }, true);
-            }
-
         });
         // Assuming setUpAudioSources and other initial setup is done
 
         function updatePositions () {
-            const scaleFactor = 100;
-            const offset = 50;
-            document.getElementById('soundSource1').style.left = `${fireX * scaleFactor + offset}px`;
-            document.getElementById('soundSource1').style.top = `${fireY * scaleFactor + offset}px`;
+            sourceWater.setPosition(waterX, waterY, waterZ);
+            sourceCampfire.setPosition(fireX, fireY, fireZ);
+            sourceBirds.setPosition(birdsX, birdsY, birdsZ);
 
-            document.getElementById('soundSource2').style.left = `${waterX * scaleFactor + offset}px`;
-            document.getElementById('soundSource2').style.top = `${waterY * scaleFactor + offset}px`;
+            resonanceAudioScene.setListenerPosition(userX, userY, userZ);
 
-            document.getElementById('soundSource3').style.left = `${birdsX * scaleFactor + offset}px`;
-            document.getElementById('soundSource3').style.top = `${birdsY * scaleFactor + offset}px`;
+            document.getElementById('soundSource1').style.left = `${fireX * scaleFactor}px`;
+            document.getElementById('soundSource1').style.top  = `${fireY * scaleFactor}px`;
+
+            document.getElementById('soundSource2').style.left = `${waterX * scaleFactor}px`;
+            document.getElementById('soundSource2').style.top  = `${waterY * scaleFactor}px`;
+
+            document.getElementById('soundSource3').style.left = `${birdsX * scaleFactor}px`;
+            document.getElementById('soundSource3').style.top  = `${birdsY * scaleFactor}px`;
 
             // Update other sources similarly...
 
-            document.getElementById('listener').style.left = `${x * scaleFactor + offset}px`;
-            document.getElementById('listener').style.top = `${y * scaleFactor + offset}px`;
+            document.getElementById('listener').style.left = `${userX * scaleFactor}px`;
+            document.getElementById('listener').style.top = `${userY * scaleFactor}px`;
         }
 
-        // Call updatePositions() at the end of your addKeyboardListeners function to update positions dynamically
 
+        document.addEventListener('DOMContentLoaded', () => {
+            let selectedElement = null;
+            let offsetX = 0;
+            let offsetY = 0;
+
+            document.querySelectorAll('.sound-source, .listener').forEach(source => {
+                source.addEventListener('mousedown', function(event) {
+                    selectedElement = event.target;
+                    offsetX = event.clientX - selectedElement.getBoundingClientRect().left;
+                    offsetY = event.clientY - selectedElement.getBoundingClientRect().top;
+
+                    selectedElement.style.position = 'absolute';
+                    selectedElement.classList.add('dragging');
+                });
+            });
+
+            document.addEventListener('mousemove', function(event) {
+                if (selectedElement) {
+                    event.preventDefault();
+                    selectedElement.style.left = `${event.clientX - offsetX}px`;
+                    selectedElement.style.top = `${event.clientY - offsetY}px`;
+                    switch(selectedElement.id){
+                        case "soundSource1":
+                            fireX = (event.clientX-offsetX)/scaleFactor-offset;
+                            fireY = (event.clientY-offsetY)/scaleFactor-offset;
+                            break;
+                        case "soundSource2":
+                            waterX = (event.clientX-offsetX)/scaleFactor-offset;
+                            waterY = (event.clientY-offsetY)/scaleFactor-offset;
+                            break;
+                        case "soundSource3":
+                            birdsX = (event.clientX-offsetX)/scaleFactor-offset;
+                            birdsY = (event.clientY-offsetY)/scaleFactor-offset;
+                            break;
+                        case "listener":
+                            userX = (event.clientX-offsetX)/scaleFactor-offset;
+                            userY = (event.clientY-offsetY)/scaleFactor-offset;
+                            break;
+                    }
+                    updatePositions();
+               }
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (selectedElement) {
+                    selectedElement.classList.remove('dragging');
+                    selectedElement = null;
+                }
+            });
+        });
     </script>
     <style>
         html,
@@ -190,6 +198,8 @@
             display: block;
             text-align: center;
             color: white;
+            cursor: move;
+            border-radius: 10%;
         }
 
         .sound-source {
@@ -197,7 +207,7 @@
             height: 50px;
             background-color: red;
             line-height: 50px;
-            border-radius: 10%;
+
         }
 
         .listener {
@@ -206,52 +216,6 @@
             background-color: blue;
             line-height: 60px;
             color: yellow;
-        }
-
-        #cursorKeys {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            user-select: none;
-            /* Prevents text selection */
-        }
-
-        .horizontal {
-            display: flex;
-        }
-
-        .cursorKey {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 40px;
-            height: 40px;
-            margin: 5px;
-            font-size: 24px;
-            color: #000;
-            background-color: #fff;
-            border: 2px solid #000;
-            /* Added border for better visibility */
-            border-radius: 5px;
-            cursor: pointer;
-            /* Changes cursor to pointer to indicate it's clickable */
-        }
-
-        /* Additional styling for alignment and spacing */
-        #leftKey {
-            margin-right: 10px;
-        }
-
-        #rightKey {
-            margin-left: 10px;
-        }
-
-        .highlighted {
-            background-color: lightgrey !important;
-            /* Ensure it overrides other styles */
         }
 
         #overlay {
@@ -287,30 +251,24 @@
 
 <body>
 
-    <div id="soundSource1" class="sound-source">Fire</div>
-    <div id="soundSource2" class="sound-source">Water</div>
-    <div id="soundSource3" class="sound-source">Birds</div>
-    <div id="listener" class="listener">Me</div>
-
-
-    <div id="cursorKeys">
-        <div id="upKey" class="cursorKey">↑</div>
-        <div class="horizontal">
-            <div id="leftKey" class="cursorKey">←</div>
-            <div id="rightKey" class="cursorKey">→</div>
-        </div>
-        <div id="downKey" class="cursorKey">↓</div>
+    <div id="soundSpace" style="position: relative; width: 100%; height: 100%;">
+        <div id="soundSource1" class="sound-source">Fire</div>
+        <div id="soundSource2" class="sound-source">Water</div>
+        <div id="soundSource3" class="sound-source">Birds</div>
+        <div id="listener" class="listener">Me</div>
     </div>
+
     <div id="overlay">
         <img src="info.png" height="200">
         <button id="startButton">Start</button>
-        <div>After pressing <b>[start]</b>, you can move arround with the cursor keys</div>
+        <div>
+            After pressing <b>[Start]</b>, drag & drop sound sources and the listener to explore spatial sound changes.
+        </div>
+        
+        
     </div>
 
 </body>
-<script>
 
-    updatePositions();
-</script>
 
 </html>
